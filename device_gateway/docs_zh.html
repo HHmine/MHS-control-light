@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>智能体硬件控制演示系统</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f1f5f9;color:#0f172a;font-family:"Microsoft YaHei",sans-serif}header{padding:24px max(20px,calc((100% - 1080px)/2));background:#0f172a;color:#fff}h1{margin:0 0 8px}header p{margin:0;color:#cbd5e1}main{max-width:1080px;margin:22px auto;padding:0 18px 40px;display:grid;gap:18px}.card{padding:20px;background:#fff;border-radius:12px;box-shadow:0 2px 10px #0f172a12}.card h2{margin:0 0 15px;font-size:19px}.status{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}.status div{padding:12px;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc}.status span{display:block;margin-bottom:5px;color:#64748b;font-size:13px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}label{display:block;margin:11px 0 5px;color:#334155;font-size:14px}input,select{width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:7px}button{margin:12px 7px 0 0;padding:10px 15px;border:0;border-radius:7px;background:#2563eb;color:#fff;cursor:pointer}.green{background:#059669}.red{background:#dc2626}.gray{background:#64748b}pre{min-height:110px;max-height:300px;overflow:auto;margin:0;padding:14px;border-radius:8px;background:#0f172a;color:#dbeafe;white-space:pre-wrap}.tip{color:#64748b;font-size:13px}table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:9px;border-bottom:1px solid #e2e8f0;text-align:left}th{background:#f8fafc}code{color:#1d4ed8}@media(max-width:720px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header><h1>智能体硬件控制演示系统</h1><p>米家床头灯2 · 设备控制 · 后端故障注入 · 实时状态监控</p></header>
+<main>
+<section class="card"><h2>设备实时状态</h2><div class="status">
+<div><span>设备名称</span><strong id="model">--</strong></div><div><span>在线状态</span><strong id="online">--</strong></div>
+<div><span>电源状态</span><strong id="power">--</strong></div><div><span>亮度</span><strong id="brightness">--</strong></div>
+<div><span>色温</span><strong id="colorTemperature">--</strong></div><div><span>设备温度</span><strong id="temperature">--</strong></div>
+<div><span>当前故障</span><strong id="fault">--</strong></div></div><button onclick="loadState()">刷新设备状态</button></section>
+<div class="grid">
+<section class="card"><h2>控制小灯</h2><label>电源状态</label><select id="powerInput"><option value="true">开灯</option><option value="false">关灯</option></select><label>亮度（1～100）</label><input id="brightnessInput" type="number" min="1" max="100" value="50"><label>色温（1700～6500 K）</label><input id="colorInput" type="number" min="1700" max="6500" value="4000"><button class="green" onclick="controlLamp()">执行控制</button></section>
+<section class="card" id="simulatedFaultCard"><h2>模拟设备故障注入</h2><label>选择模拟故障</label><select id="faultInput"><option value="offline">设备离线</option><option value="stuck_on">无法关灯</option><option value="stuck_off">无法开灯</option><option value="sensor_error">传感器异常</option><option value="overheat">设备过热</option></select><p class="tip">故障只作用于模拟设备，不会操作真实硬件。</p><button class="red" onclick="injectFault()">注入故障</button><button class="gray" onclick="clearFault()">清除故障</button></section>
+<section class="card" id="realFaultCard" style="display:none"><h2>真实设备黑盒故障注入</h2><label>选择后端故障</label><select id="realFaultInput"><option value="block_power_on">禁止开灯（HTTP 仍返回成功）</option><option value="block_power_off">禁止关灯（HTTP 仍返回成功）</option></select><p class="tip">此开关仅供网页管理员使用，Agent 不会看到故障配置。命中的开关灯请求不会发送到实体灯，但控制接口仍返回成功；再次查询真实状态时才会发现实际状态没有改变。</p><div class="status"><div><span>当前黑盒故障</span><strong id="realFaultStatus">正在读取……</strong></div></div><button class="red" onclick="injectRealFault()">开启故障注入</button><button class="gray" onclick="clearRealFault()">清除故障</button></section>
+</div>
+<section class="card"><h2>操作结果</h2><pre id="result">等待操作……</pre></section>
+<section class="card"><h2>实时事件日志</h2><pre id="events">正在连接设备事件流……</pre></section>
+<section class="card"><h2>接口说明</h2><table><tr><th>请求方式</th><th>接口路径</th><th>中文说明</th></tr><tr><td>GET</td><td><code>/health</code></td><td>检查服务状态</td></tr><tr><td>GET</td><td><code>/api/device/state</code></td><td>获取设备状态</td></tr><tr><td>POST</td><td><code>/api/device/control</code></td><td>控制小灯</td></tr><tr><td>POST</td><td><code>/api/faults/inject</code></td><td>注入模拟故障</td></tr><tr><td>POST</td><td><code>/api/faults/clear</code></td><td>清除模拟故障</td></tr><tr><td>GET</td><td><code>/api/real-faults/state</code></td><td>查询真实设备网关故障</td></tr><tr><td>POST</td><td><code>/api/real-faults/inject</code></td><td>注入 block_power_on 或 block_power_off</td></tr><tr><td>POST</td><td><code>/api/real-faults/clear</code></td><td>清除真实设备网关故障</td></tr><tr><td>GET</td><td><code>/api/device/events</code></td><td>订阅实时事件</td></tr></table></section>
+</main>
+<script>
+const faultNames={offline:'设备离线',stuck_on:'无法关灯',stuck_off:'无法开灯',sensor_error:'传感器异常',overheat:'设备过热'};
+const eventNames={snapshot:'状态快照',state_changed:'设备状态已变化',fault_injected:'已注入故障',fault_cleared:'已清除故障',heartbeat:'设备心跳'};
+const fieldNames={device_id:'设备编号',model:'设备名称',online:'在线状态',power:'电源状态',brightness:'亮度',color_temperature:'色温',temperature_c:'设备温度',active_fault:'当前故障',updated_at:'更新时间'};
+const realFaultNames={block_power_on:'禁止开灯',block_power_off:'禁止关灯'};
+let isRealBackend=false;
+let activeRealFault=null;
+function chineseState(s){const o={};for(const[k,v]of Object.entries(s)){let value=v;if(k==='online')value=v?'在线':'离线';if(k==='power')value=v?'已开灯':'已关灯';if(k==='active_fault')value=v?(faultNames[v]||v):'无故障';if(k==='brightness')value=v+'%';if(k==='color_temperature')value=v+' K';if(k==='temperature_c')value=v===null?'读取异常':v+' ℃';o[fieldNames[k]||k]=value}return o}
+function render(s){document.getElementById('model').textContent=s.model||'--';document.getElementById('online').textContent=s.online?'在线':'离线';document.getElementById('power').textContent=s.power?'已开灯':'已关灯';document.getElementById('brightness').textContent=s.brightness+'%';document.getElementById('colorTemperature').textContent=s.color_temperature+' K';document.getElementById('temperature').textContent=s.temperature_c===null?'读取异常':s.temperature_c+' ℃';document.getElementById('fault').textContent=isRealBackend?(activeRealFault?(realFaultNames[activeRealFault]||activeRealFault):'无故障'):(s.active_fault?(faultNames[s.active_fault]||s.active_fault):'无故障')}
+function show(s){document.getElementById('result').textContent=JSON.stringify(chineseState(s),null,2);render(s)}
+async function request(path,options={}){try{const r=await fetch(path,{headers:{'Content-Type':'application/json'},...options});const d=await r.json();if(!r.ok)throw new Error(d.detail||'请求失败');show(d)}catch(e){document.getElementById('result').textContent=JSON.stringify({'操作成功':false,'错误信息':e.message},null,2)}}
+function loadState(){request('/api/device/state')}function controlLamp(){request('/api/device/control',{method:'POST',body:JSON.stringify({power:powerInput.value==='true',brightness:Number(brightnessInput.value),color_temperature:Number(colorInput.value)})})}function injectFault(){request('/api/faults/inject',{method:'POST',body:JSON.stringify({fault:faultInput.value})})}function clearFault(){request('/api/faults/clear',{method:'POST'})}
+function renderRealFault(d){activeRealFault=d.active_real_fault;const name=realFaultNames[activeRealFault];document.getElementById('realFaultStatus').textContent=name?name+'（已开启）':'无';document.getElementById('fault').textContent=name||'无故障'}
+let eventSource=null;
+function startEventStream(){if(eventSource)return;eventSource=new EventSource('/api/device/events');eventSource.onmessage=e=>{const d=JSON.parse(e.data);document.getElementById('events').textContent='事件类型：'+(eventNames[d.type]||d.type)+'\n发生时间：'+d.timestamp+'\n\n'+JSON.stringify(chineseState(d.state),null,2);render(d.state)};eventSource.onerror=()=>document.getElementById('events').textContent='实时事件流连接中断，正在自动重连……'}
+async function loadBackend(){try{const r=await fetch('/health');const d=await r.json();isRealBackend=d.backend==='yeelight';document.getElementById('realFaultCard').style.display=isRealBackend?'block':'none';document.getElementById('simulatedFaultCard').style.display=isRealBackend?'none':'block';if(isRealBackend){document.getElementById('events').textContent='真实设备模式下不启用模拟事件流。';await loadRealFault()}else{startEventStream()}}catch(e){document.getElementById('result').textContent='读取后端类型失败：'+e.message}}
+async function realFaultRequest(path,options={}){try{const r=await fetch(path,{headers:{'Content-Type':'application/json'},...options});const d=await r.json();if(!r.ok)throw new Error(d.detail||'请求失败');renderRealFault(d);document.getElementById('result').textContent=JSON.stringify({'操作成功':true,'后端':d.backend,'当前黑盒故障':d.active_real_fault||'无'},null,2)}catch(e){document.getElementById('result').textContent=JSON.stringify({'操作成功':false,'错误信息':e.message},null,2)}}
+function loadRealFault(){return realFaultRequest('/api/real-faults/state')}function injectRealFault(){realFaultRequest('/api/real-faults/inject',{method:'POST',body:JSON.stringify({fault:realFaultInput.value})})}function clearRealFault(){realFaultRequest('/api/real-faults/clear',{method:'POST'})}
+loadState();
+loadBackend();
+</script></body></html>
