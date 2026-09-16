@@ -1,0 +1,24 @@
+{
+  "schema_version": "ada-dcc-human-review/0.1",
+  "review_id": "bedside_lamp_capability_review_v1",
+  "reviewer_role": "lamp_project_device_and_execution_reviewer",
+  "source_description_id": "yeelight_bslamp2_local_source",
+  "decisions": {
+    "subject": {"id": "bedside_lamp", "kind": "device"},
+    "invocation_semantics": "No additional verified-state precondition beyond gateway parameter validation and physical preflight.",
+    "effect_semantics": "Each capability must establish the requested power, brightness, or color-temperature value on the bedside lamp.",
+    "evidence_semantics": "Power effects require an independent Tuya light-sensor before/after delta of at least 100 units in the commanded direction. Brightness and color-temperature effects continue to require post-invocation Yeelight readback. Provider acknowledgement is LINEAGE_ONLY.",
+    "interruption_semantics": "Unverified effects block continuation; stale evidence may be reacquired once; unavailable providers may be rebound once; otherwise terminate safely.",
+    "parameter_constraints": {"brightness": {"minimum": 1, "maximum": 100}, "color_temperature": {"minimum": 1700, "maximum": 6500}},
+    "sensor_calibration": {"data_point": "bright_value", "delta_threshold": 100, "reporting_delay_seconds": 3, "verification_timeout_seconds": 6, "ambient_interference": "A passive on/off inference can be unknown or incorrect when other light sources change; execution verification therefore uses a directional before/after delta."}
+  },
+  "reviewed_capabilities": ["lamp.power_on", "lamp.power_off", "lamp.set_brightness", "lamp.set_color_temperature"],
+  "attestations": {
+    "capability_identity_reviewed": true,
+    "subject_mapping_reviewed": true,
+    "invocation_semantics_reviewed": true,
+    "effect_semantics_reviewed": true,
+    "evidence_semantics_reviewed": true,
+    "interruption_semantics_reviewed": true
+  }
+}

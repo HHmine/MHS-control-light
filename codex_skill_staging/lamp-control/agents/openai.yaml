@@ -1,0 +1,4 @@
+interface:
+  display_name: Lamp Control
+  short_description: Safely control, query, and diagnose the physical bedside lamp through MCP
+  default_prompt: 使用本地小灯 MCP 检查或控制实体床头灯。

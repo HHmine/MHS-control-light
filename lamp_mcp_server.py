@@ -37,9 +37,40 @@ def _error_detail(response: httpx.Response) -> str:
         body = response.json()
     except ValueError:
         return response.text.strip() or f"HTTP {response.status_code}"
-    if isinstance(body, dict) and isinstance(body.get("detail"), str):
-        return body["detail"]
+    if isinstance(body, dict):
+        if body.get("error_code") == "EFFECT_NOT_VERIFIED":
+            return _format_effect_not_verified(body)
+        if isinstance(body.get("detail"), str):
+            return body["detail"]
     return str(body)
+
+
+def _format_effect_not_verified(body: dict[str, Any]) -> str:
+    """Explain evidence failure without exposing hidden admin fault state."""
+    details = body.get("error_details")
+    if not isinstance(details, dict):
+        return str(body.get("detail") or "ADA-DCC 效果证据校验未通过")
+    evidence = details.get("evidence")
+    evidence = evidence if isinstance(evidence, dict) else {}
+    capability_id = details.get("capability_id", "unknown")
+    ack = details.get("provider_acknowledgement", "UNKNOWN")
+    authority = details.get("provider_acknowledgement_authority", "UNKNOWN")
+    source = evidence.get("source", "unknown")
+    state_path = evidence.get("state_path", "unknown")
+    operator = evidence.get("operator", "unknown")
+    expected = evidence.get("expected")
+    observed = evidence.get("observed")
+    message = (
+        f"本次控制未确认成功：AHA-EA {capability_id} 的效果证据校验未通过。"
+        f"设备 Provider 已返回 {ack}（权限级别 {authority}），但这只能证明指令已被接收，"
+        f"不能证明实体效果已经发生。{source} 的 {state_path} 要求 {operator} {expected}，"
+        f"实际观测值为 {observed}，因此 AUREA 判定为 EFFECT_NOT_VERIFIED，"
+        "未报告设备已改变。"
+    )
+    state = details.get("state")
+    if isinstance(state, dict) and "power" in state:
+        message += f" 当前设备电源状态为{'开启' if state['power'] else '关闭'}。"
+    return message
 
 
 def _request_json(
@@ -87,7 +118,10 @@ def get_lamp_gateway_health() -> dict[str, Any]:
 
 @mcp.tool(
     name="get_lamp_state",
-    description="实时查询实体小灯的在线状态、电源、亮度、色温、温度和故障状态。",
+    description=(
+        "实时查询实体小灯的在线状态、设备自报电源、传感器推断电源、"
+        "亮度、色温、温度和故障状态。"
+    ),
 )
 def get_lamp_state() -> dict[str, Any]:
     """Read the current lamp state."""

@@ -1,0 +1,67 @@
+{
+  "schema_version": "ada-physical-deployment/0.1",
+  "deployment_id": "bedside_lamp_yeelight_local",
+  "description": "Reviewed local Yeelight bedside lamp deployment.",
+  "capability_bindings": [
+    {
+      "capability_id": "lamp.power_on",
+      "subject_id": "bedside_lamp",
+      "provider_id": "yeelight",
+      "actual_device_id": "bedside_lamp",
+      "protocol": "python-miio",
+      "native_action": "set_power on",
+      "provider_adapter": {
+        "implementation": "device_gateway.aurea_lamp_adapters:create_provider_adapter",
+        "adapter_class": "PHYSICAL",
+        "connection_parameters": {"native_action": "set_power"},
+        "credential_environment_variables": {"ip": "BEDSIDE_LAMP_IP", "token": "BEDSIDE_LAMP_TOKEN"}
+      },
+      "observation_routes": [{"requirement_id": "lamp.power_on.observed", "source_id": "tuya_light_sensor", "property_path": "lux_delta", "state_path": "illumination.lux_delta", "observation_adapter": {"implementation": "device_gateway.aurea_sensor_adapters:create_observation_adapter", "adapter_class": "PHYSICAL", "connection_parameters": {"api_endpoint": "https://openapi.tuyacn.com", "dp_code": "bright_value"}, "credential_environment_variables": {"access_id": "TUYA_ACCESS_ID", "access_key": "TUYA_ACCESS_KEY", "device_id": "TUYA_SENSOR_DEVICE_ID"}}, "qualification": {"status": "CALIBRATED", "method": "PASSTHROUGH", "parameters": {"maximum_capture_delay_seconds": 2}, "provenance": {"source": "Tuya bright_value before/after delta", "reviewed_by": "lamp_project"}}}]
+    },
+    {
+      "capability_id": "lamp.power_off",
+      "subject_id": "bedside_lamp",
+      "provider_id": "yeelight",
+      "actual_device_id": "bedside_lamp",
+      "protocol": "python-miio",
+      "native_action": "set_power off",
+      "provider_adapter": {
+        "implementation": "device_gateway.aurea_lamp_adapters:create_provider_adapter",
+        "adapter_class": "PHYSICAL",
+        "connection_parameters": {"native_action": "set_power"},
+        "credential_environment_variables": {"ip": "BEDSIDE_LAMP_IP", "token": "BEDSIDE_LAMP_TOKEN"}
+      },
+      "observation_routes": [{"requirement_id": "lamp.power_off.observed", "source_id": "tuya_light_sensor", "property_path": "lux_delta", "state_path": "illumination.lux_delta", "observation_adapter": {"implementation": "device_gateway.aurea_sensor_adapters:create_observation_adapter", "adapter_class": "PHYSICAL", "connection_parameters": {"api_endpoint": "https://openapi.tuyacn.com", "dp_code": "bright_value"}, "credential_environment_variables": {"access_id": "TUYA_ACCESS_ID", "access_key": "TUYA_ACCESS_KEY", "device_id": "TUYA_SENSOR_DEVICE_ID"}}, "qualification": {"status": "CALIBRATED", "method": "PASSTHROUGH", "parameters": {"maximum_capture_delay_seconds": 2}, "provenance": {"source": "Tuya bright_value before/after delta", "reviewed_by": "lamp_project"}}}]
+    },
+    {
+      "capability_id": "lamp.set_brightness",
+      "subject_id": "bedside_lamp",
+      "provider_id": "yeelight",
+      "actual_device_id": "bedside_lamp",
+      "protocol": "python-miio",
+      "native_action": "set_bright",
+      "provider_adapter": {
+        "implementation": "device_gateway.aurea_lamp_adapters:create_provider_adapter",
+        "adapter_class": "PHYSICAL",
+        "connection_parameters": {"native_action": "set_bright"},
+        "credential_environment_variables": {"ip": "BEDSIDE_LAMP_IP", "token": "BEDSIDE_LAMP_TOKEN"}
+      },
+      "observation_routes": [{"requirement_id": "lamp.set_brightness.observed", "source_id": "yeelight_readback", "property_path": "brightness", "state_path": "brightness", "observation_adapter": {"implementation": "device_gateway.aurea_lamp_adapters:create_observation_adapter", "adapter_class": "PHYSICAL", "connection_parameters": {}}, "qualification": {"status": "NOT_REQUIRED", "method": "PASSTHROUGH", "parameters": {}, "provenance": {"source": "Yeelight get_prop bright", "reviewed_by": "lamp_project"}}}]
+    },
+    {
+      "capability_id": "lamp.set_color_temperature",
+      "subject_id": "bedside_lamp",
+      "provider_id": "yeelight",
+      "actual_device_id": "bedside_lamp",
+      "protocol": "python-miio",
+      "native_action": "set_ct_abx",
+      "provider_adapter": {
+        "implementation": "device_gateway.aurea_lamp_adapters:create_provider_adapter",
+        "adapter_class": "PHYSICAL",
+        "connection_parameters": {"native_action": "set_ct_abx"},
+        "credential_environment_variables": {"ip": "BEDSIDE_LAMP_IP", "token": "BEDSIDE_LAMP_TOKEN"}
+      },
+      "observation_routes": [{"requirement_id": "lamp.set_color_temperature.observed", "source_id": "yeelight_readback", "property_path": "color_temperature", "state_path": "color_temperature", "observation_adapter": {"implementation": "device_gateway.aurea_lamp_adapters:create_observation_adapter", "adapter_class": "PHYSICAL", "connection_parameters": {}}, "qualification": {"status": "NOT_REQUIRED", "method": "PASSTHROUGH", "parameters": {}, "provenance": {"source": "Yeelight get_prop ct", "reviewed_by": "lamp_project"}}}]
+    }
+  ]
+}

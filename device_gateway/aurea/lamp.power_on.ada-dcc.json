@@ -1,0 +1,11 @@
+{
+  "spec_version": "0.1",
+  "capability_id": "lamp.power_on",
+  "subject": {"id": "bedside_lamp", "kind": "device"},
+  "parameters": [{"name": "power", "type": "boolean"}],
+  "invocation_semantics": {"preconditions": []},
+  "effect_semantics": {"effects": [{"effect_id": "lamp.power_on.effect", "state": {"subject": {"id": "bedside_lamp", "kind": "device"}, "path": "power"}, "value": {"type": "boolean", "value": true}}]},
+  "evidence_semantics": {"acknowledgement_authority": "LINEAGE_ONLY", "requirements": [{"requirement_id": "lamp.power_on.observed", "effect_id": "lamp.power_on.effect", "predicate": {"state": {"subject": {"id": "bedside_lamp", "kind": "device"}, "path": "illumination.lux_delta"}, "operator": "GTE", "expected": {"type": "integer", "unit": "lux", "value": 100}}, "source": {"id": "tuya_light_sensor", "type": "INDEPENDENT_SENSOR", "subject": {"id": "bedside_lamp", "kind": "device"}, "independence": "INDEPENDENT_FROM_ACTUATOR"}, "freshness": {"basis": "POST_INVOCATION_CURRENT_EXECUTION"}, "minimum_observations": 1}]},
+  "interruption_semantics": {"mode": "INTERRUPTIBLE", "effect_reversibility": "REVERSIBLE", "preserve_verified_progress": true, "exclude_unverified_effects": true, "rules": [{"on": "EFFECT_NOT_ESTABLISHED", "disposition": "BLOCK_CONTINUATION", "fallback": "SAFE_TERMINATE", "max_attempts": 0}, {"on": "EVIDENCE_STALE_OR_INSUFFICIENT", "disposition": "REACQUIRE_EVIDENCE", "fallback": "SAFE_TERMINATE", "max_attempts": 1}, {"on": "PROVIDER_UNAVAILABLE", "disposition": "REBIND", "fallback": "SAFE_TERMINATE", "max_attempts": 1}, {"on": "NO_VALID_CONTINUATION", "disposition": "SAFE_TERMINATE", "max_attempts": 0}]},
+  "extensions": {"ada.lamp": {"review_status": "PROJECT_REVIEWED", "native_protocol": "python-miio", "template_value": true}}
+}

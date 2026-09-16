@@ -1,0 +1,11 @@
+{
+  "spec_version": "0.1",
+  "capability_id": "lamp.set_brightness",
+  "subject": {"id": "bedside_lamp", "kind": "device"},
+  "parameters": [{"name": "brightness", "type": "integer", "unit": "percent"}],
+  "invocation_semantics": {"preconditions": []},
+  "effect_semantics": {"effects": [{"effect_id": "lamp.set_brightness.effect", "state": {"subject": {"id": "bedside_lamp", "kind": "device"}, "path": "brightness"}, "value": {"type": "integer", "unit": "percent", "value": 1}}]},
+  "evidence_semantics": {"acknowledgement_authority": "LINEAGE_ONLY", "requirements": [{"requirement_id": "lamp.set_brightness.observed", "effect_id": "lamp.set_brightness.effect", "predicate": {"state": {"subject": {"id": "bedside_lamp", "kind": "device"}, "path": "brightness"}, "operator": "EQ", "expected": {"type": "integer", "unit": "percent", "value": 1}}, "source": {"id": "yeelight_readback", "type": "INDEPENDENT_READBACK", "subject": {"id": "bedside_lamp", "kind": "device"}, "independence": "NOT_REQUIRED"}, "freshness": {"basis": "POST_INVOCATION_CURRENT_EXECUTION"}, "minimum_observations": 1}]},
+  "interruption_semantics": {"mode": "INTERRUPTIBLE", "effect_reversibility": "REVERSIBLE", "preserve_verified_progress": true, "exclude_unverified_effects": true, "rules": [{"on": "EFFECT_NOT_ESTABLISHED", "disposition": "BLOCK_CONTINUATION", "fallback": "SAFE_TERMINATE", "max_attempts": 0}, {"on": "EVIDENCE_STALE_OR_INSUFFICIENT", "disposition": "REACQUIRE_EVIDENCE", "fallback": "SAFE_TERMINATE", "max_attempts": 1}, {"on": "PROVIDER_UNAVAILABLE", "disposition": "REBIND", "fallback": "SAFE_TERMINATE", "max_attempts": 1}, {"on": "NO_VALID_CONTINUATION", "disposition": "SAFE_TERMINATE", "max_attempts": 0}]},
+  "extensions": {"ada.lamp": {"review_status": "PROJECT_REVIEWED", "native_protocol": "python-miio", "template_value": 1, "value_range": {"minimum": 1, "maximum": 100}}}
+}

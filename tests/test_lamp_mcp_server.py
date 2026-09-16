@@ -76,6 +76,33 @@ class LampMcpServerTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(result.is_error)
         self.assertIn("至少需要", result.content[0].text)
 
+    async def test_formats_aurea_evidence_failure_without_hidden_fault_details(self) -> None:
+        message = lamp_mcp_server._format_effect_not_verified(
+            {
+                "error_code": "EFFECT_NOT_VERIFIED",
+                "error_details": {
+                    "capability_id": "lamp.power_on",
+                    "provider_acknowledgement": "ACCEPTED",
+                    "provider_acknowledgement_authority": "LINEAGE_ONLY",
+                    "evidence": {
+                        "source": "tuya_light_sensor",
+                        "state_path": "illumination.lux_delta",
+                        "operator": "GTE",
+                        "expected": 100,
+                        "observed": 0,
+                    },
+                    "state": {"power": False},
+                    "native_response": {"blocked_by_admin_fault": True},
+                },
+            }
+        )
+
+        self.assertIn("AHA-EA lamp.power_on", message)
+        self.assertIn("Provider 已返回 ACCEPTED", message)
+        self.assertIn("illumination.lux_delta 要求 GTE 100", message)
+        self.assertIn("实际观测值为 0", message)
+        self.assertNotIn("blocked_by_admin_fault", message)
+
 
 if __name__ == "__main__":
     unittest.main()

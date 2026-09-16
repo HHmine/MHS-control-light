@@ -6,13 +6,14 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 
-from .device_registry import build_lamp_adapter
+from .device_registry import build_lamp_adapter, build_sensor_adapter
 from .device_service import DeviceService
 
 backend, adapter = build_lamp_adapter()
-service = DeviceService(backend, adapter)
+sensor_adapter = build_sensor_adapter(adapter)
+service = DeviceService(backend, adapter, sensor_adapter=sensor_adapter)
 
 app = FastAPI(
     title="智能体硬件控制演示系统",
@@ -56,6 +57,14 @@ def get_state() -> dict[str, Any]:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
 
+@app.get("/api/sensor/reading")
+def sensor_reading() -> dict[str, Any]:
+    try:
+        return service.sensor_reading()
+    except (RuntimeError, ValueError) as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+
 @app.post("/api/device/control")
 def control(payload: dict[str, Any]) -> dict[str, Any]:
     try:
@@ -67,7 +76,24 @@ def control(payload: dict[str, Any]) -> dict[str, Any]:
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except RuntimeError as exc:
-        raise HTTPException(status_code=409, detail=str(exc)) from exc
+        status_code = {
+            "AUREA_UNAVAILABLE": 503,
+            "AUREA_PREFLIGHT_FAILED": 503,
+            "AUREA_DISPATCH_FAILED": 503,
+            "EFFECT_NOT_VERIFIED": 409,
+        }.get(getattr(exc, "status", ""), 409)
+        details = getattr(exc, "details", {})
+        if details:
+            return JSONResponse(
+                status_code=status_code,
+                content={
+                    "ok": False,
+                    "error_code": getattr(exc, "status", "EXECUTION_FAILED"),
+                    "detail": str(exc),
+                    "error_details": details,
+                },
+            )
+        raise HTTPException(status_code=status_code, detail=str(exc)) from exc
 
 
 @app.post("/api/faults/inject")

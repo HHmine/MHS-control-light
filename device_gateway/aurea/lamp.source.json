@@ -1,0 +1,51 @@
+{
+  "schema_version": "ada-device-source-description/0.1",
+  "description_id": "yeelight_bslamp2_local_source",
+  "resource": {
+    "resource_id": "bedside_lamp",
+    "resource_type": "smart_lamp",
+    "manufacturer": "Yeelight/Xiaomi",
+    "model": "yeelink.light.bslamp2"
+  },
+  "provider": {
+    "provider_type": "local_device_protocol",
+    "protocol": "Xiaomi miIO through python-miio",
+    "api_version": null,
+    "metadata": {
+      "transport": "local_network",
+      "implementation": "device_gateway.yeelight_adapter.YeelightAdapter"
+    }
+  },
+  "sources": [
+    {
+      "source_id": "project_device_inspection",
+      "source_type": "DEVICE_INSPECTION",
+      "title": "Verified commands and properties used by the lamp gateway",
+      "locator": "device_gateway/yeelight_adapter.py"
+    },
+    {
+      "source_id": "tuya_light_sensor_inspection",
+      "source_type": "DEVICE_INSPECTION",
+      "title": "Tuya light sensor bright_value observation used for independent power-effect evidence",
+      "locator": "device_gateway/tuya_sensor_adapter.py"
+    }
+  ],
+  "actions": [
+    {"action_id": "lamp.power_on", "native_name": "set_power on", "description": "Turn the bedside lamp on.", "parameters": [{"name": "power", "type": "boolean", "required": true, "value_domain": [true]}], "source_refs": ["project_device_inspection"]},
+    {"action_id": "lamp.power_off", "native_name": "set_power off", "description": "Turn the bedside lamp off.", "parameters": [{"name": "power", "type": "boolean", "required": true, "value_domain": [false]}], "source_refs": ["project_device_inspection"]},
+    {"action_id": "lamp.set_brightness", "native_name": "set_bright", "description": "Set lamp brightness from 1 to 100 percent.", "parameters": [{"name": "brightness", "type": "integer", "required": true, "unit": "percent"}], "source_refs": ["project_device_inspection"]},
+    {"action_id": "lamp.set_color_temperature", "native_name": "set_ct_abx", "description": "Set lamp color temperature from 1700 to 6500 kelvin.", "parameters": [{"name": "color_temperature", "type": "integer", "required": true, "unit": "K"}], "source_refs": ["project_device_inspection"]}
+  ],
+  "readable_properties": [
+    {"property_id": "lamp.power", "native_name": "get_prop power", "type": "boolean", "value_domain": [true, false], "source_refs": ["project_device_inspection"]},
+    {"property_id": "lamp.brightness", "native_name": "get_prop bright", "type": "integer", "unit": "percent", "source_refs": ["project_device_inspection"]},
+    {"property_id": "lamp.color_temperature", "native_name": "get_prop ct", "type": "integer", "unit": "K", "source_refs": ["project_device_inspection"]}
+  ],
+  "observations": [
+    {"observation_id": "tuya_light_sensor.illumination_delta", "native_name": "bright_value before/after delta", "observation_type": "INDEPENDENT_SENSOR", "value_type": "integer", "unit": "lux", "source_refs": ["tuya_light_sensor_inspection"]},
+    {"observation_id": "yeelight_readback.power", "native_name": "get_prop power", "observation_type": "PROPERTY_READ", "value_type": "boolean", "value_domain": [true, false], "source_refs": ["project_device_inspection"]},
+    {"observation_id": "yeelight_readback.brightness", "native_name": "get_prop bright", "observation_type": "PROPERTY_READ", "value_type": "integer", "unit": "percent", "source_refs": ["project_device_inspection"]},
+    {"observation_id": "yeelight_readback.color_temperature", "native_name": "get_prop ct", "observation_type": "PROPERTY_READ", "value_type": "integer", "unit": "K", "source_refs": ["project_device_inspection"]}
+  ],
+  "events": []
+}

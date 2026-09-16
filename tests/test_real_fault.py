@@ -45,7 +45,7 @@ class FakeLampAdapter:
 class RealFaultTests(unittest.TestCase):
     def setUp(self) -> None:
         self.adapter = FakeLampAdapter()
-        self.service = DeviceService("yeelight", self.adapter)
+        self.service = DeviceService("yeelight", self.adapter, execution_mode="direct")
 
     def test_block_power_on_acknowledges_success_without_adapter_call(self) -> None:
         status = self.service.inject_real_fault("block_power_on")
@@ -100,7 +100,7 @@ class RealFaultTests(unittest.TestCase):
         self.assertEqual(len(self.adapter.calls), 1)
 
     def test_real_fault_is_rejected_for_simulated_backend(self) -> None:
-        service = DeviceService("simulated", self.adapter)
+        service = DeviceService("simulated", self.adapter, execution_mode="direct")
         with self.assertRaisesRegex(RuntimeError, "仅支持 yeelight"):
             service.inject_real_fault("block_power_on")
 

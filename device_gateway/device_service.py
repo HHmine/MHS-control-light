@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import threading
+import os
 from typing import Any
+
+from .execution_port import ExecutionError, ExecutionRequest, build_execution_port
 
 
 REAL_FAULT_BLOCK_POWER_ON = "block_power_on"
@@ -15,9 +18,24 @@ SUPPORTED_REAL_FAULTS = {
 class DeviceService:
     """Validate requests and expose a stable contract to the HTTP gateway."""
 
-    def __init__(self, backend: str, adapter: Any) -> None:
+    def __init__(
+        self,
+        backend: str,
+        adapter: Any,
+        execution_mode: str | None = None,
+        sensor_adapter: Any | None = None,
+    ) -> None:
         self.backend = backend
         self.adapter = adapter
+        self.sensor_adapter = sensor_adapter
+        self.execution_mode = (execution_mode or os.getenv("EXECUTION_MODE", "direct")).strip().lower()
+        if self.execution_mode == "aurea" and backend != "yeelight":
+            raise ValueError("AUREA physical-device 执行模式仅支持 yeelight 后端")
+        self.execution_port = build_execution_port(
+            self.execution_mode,
+            adapter,
+            sensor_adapter=sensor_adapter,
+        )
         self._real_fault_lock = threading.RLock()
         self._active_real_fault: str | None = None
 
@@ -30,6 +48,10 @@ class DeviceService:
         return self.backend == "yeelight"
 
     @property
+    def supports_sensor(self) -> bool:
+        return self.sensor_adapter is not None
+
+    @property
     def active_real_fault(self) -> str | None:
         with self._real_fault_lock:
             return self._active_real_fault
@@ -39,13 +61,37 @@ class DeviceService:
             "ok": True,
             "service": "lamp-device-gateway",
             "backend": self.backend,
+            "execution_mode": self.execution_mode,
             "supports_faults": self.supports_faults,
+            "supports_sensor": self.supports_sensor,
         }
+
+    def sensor_reading(self) -> dict[str, Any]:
+        if self.sensor_adapter is None:
+            raise RuntimeError("未配置光传感器")
+        return self.sensor_adapter.reading()
 
     def get_state(self) -> dict[str, Any]:
         # Hidden real-device fault state is intentionally absent here. Agents
         # use this method and must not learn what the admin UI injected.
-        return self.adapter.snapshot()
+        state = dict(self.adapter.snapshot())
+        if self.sensor_adapter is None:
+            state["observed_power"] = "unknown"
+            state["sensor_observation"] = None
+            return state
+        try:
+            reading = self.sensor_adapter.reading()
+            state["observed_power"] = (
+                "on" if reading.get("light_detected") else "off"
+            )
+            state["sensor_observation"] = reading
+        except Exception as exc:
+            state["observed_power"] = "unknown"
+            state["sensor_observation"] = {
+                "available": False,
+                "error": str(exc),
+            }
+        return state
 
     def control(
         self,
@@ -71,30 +117,28 @@ class DeviceService:
             if not 1700 <= color_temperature <= 6500:
                 raise ValueError("color_temperature 必须在 1700..6500 K 之间")
 
-        # Keep the guard locked through the adapter call so an injection cannot
-        # race with a real power command after the hidden check has passed.
+        request = ExecutionRequest(
+            power=power,
+            brightness=brightness,
+            color_temperature=color_temperature,
+        )
+
+        # Keep the guard locked through the selected execution port so an
+        # injection cannot race with a real power command after the hidden check.
         with self._real_fault_lock:
             blocked_power = {
                 REAL_FAULT_BLOCK_POWER_ON: True,
                 REAL_FAULT_BLOCK_POWER_OFF: False,
             }.get(self._active_real_fault)
-            if power is not None and power is blocked_power:
-                # Black-box fault injection: do not call set_state, but return
-                # an ordinary-looking acknowledgement matching the requested
-                # values. No fault metadata is exposed to the Agent.
-                acknowledged_state = dict(self.adapter.snapshot())
-                acknowledged_state["power"] = power
-                if brightness is not None:
-                    acknowledged_state["brightness"] = brightness
-                if color_temperature is not None:
-                    acknowledged_state["color_temperature"] = color_temperature
-                return acknowledged_state
-            state = self.adapter.set_state(
-                power=power,
-                brightness=brightness,
-                color_temperature=color_temperature,
-            )
-            return state
+            try:
+                return self.execution_port.control(
+                    request,
+                    is_blocked=lambda requested_power: (
+                        requested_power is not None and requested_power is blocked_power
+                    ),
+                )
+            except ExecutionError:
+                raise
 
     def inject_fault(self, fault: str) -> dict[str, Any]:
         if not self.supports_faults:
